@@ -46,7 +46,8 @@ def draw_curves_and_nodes(
                 fontsize=text_size, ha='center', va='center', zorder=3)
         
     ax.set_aspect("equal", adjustable="box")
-
+    ax.set_xlim((0, img_size))
+    ax.set_ylim((0, img_size))
     fig.canvas.draw()
     img = np.asarray(fig.canvas.renderer.buffer_rgba())[..., :3]
     plt.close(fig)

@@ -2,6 +2,7 @@
 import math
 import numpy as np
 import shapely
+from shapely.ops import split
 
 def create_endpoints(img_shape, min_dist, max_dist, padding):
     """Create two random points inside the region defined by `img_shape`.
@@ -182,6 +183,40 @@ def create_curves(
     return curves
 
 def create_nodes(curves):
+
+    curves_shapely = set([shapely.LineString(curve) for curve in curves])
+
+    # Split each curve into pieces at crossing points with the other curves
+    pieces = []
+    for curve_ref in curves_shapely:
+        curves_other = curves_shapely.copy()
+        curves_other.remove(curve_ref)
+        curve_pieces = split(curve_ref, shapely.MultiLineString(curves_other))
+        pieces.extend(curve_pieces.geoms)
+
+    # Create a mapping from boundary points to node indices. Also stores node positions
+    boundary_to_node = {}
+    nodes_pos = []
+    next_node_idx = 0
+    for piece in pieces:
+        for boundary in piece.boundary.geoms:
+            if boundary not in boundary_to_node:
+                boundary_to_node[boundary] = next_node_idx
+                nodes_pos.append(boundary.coords[0])
+                next_node_idx += 1
+
+    # Create an edge for each piece
+    edge_list = []
+    for piece in pieces:
+        p1, p2 = piece.boundary.geoms
+        edge = (boundary_to_node[p1], boundary_to_node[p2])
+        edge_list.append(edge)
+
+    nodes_np = np.array(nodes_pos)
+
+    return nodes_np, edge_list
+
+def create_nodes_old(curves):
 
     curves_shapely = [shapely.LineString(curve) for curve in curves]
     curves_mult = shapely.MultiLineString(curves_shapely)
